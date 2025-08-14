@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Jobs\SendTaskNotification;
 
 class TaskController extends Controller
 {
@@ -51,6 +52,9 @@ class TaskController extends Controller
             'due_date' => $request->due_date,
         ]);
 
+        // Dispatch the notification job
+        SendTaskNotification::dispatch($task);
+
         return response()->json($task, 201);
     }
 
@@ -94,6 +98,9 @@ class TaskController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Check if the task is being marked as completed
+        $isNowCompleted = $request->status === 'completed' && $task->status !== 'completed';
+
         $task->update([
             'title' => $request->title,
             'description' => $request->description,
@@ -101,6 +108,11 @@ class TaskController extends Controller
             'priority' => $request->priority,
             'due_date' => $request->due_date,
         ]);
+
+        // Dispatch notification if task is newly completed
+        if ($isNowCompleted) {
+            SendTaskNotification::dispatch($task);
+        }
 
         return response()->json($task, 200);
     }
