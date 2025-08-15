@@ -75,8 +75,8 @@ class AuthController extends Controller
             return response()->json(['error' => 'Could not create token'], 500);
         }
 
-        // Get the authenticated user
-        $user = auth()->user();
+        // Get the authenticated user using the JWT token
+        $user = JWTAuth::setToken($token)->toUser(); // Substitui auth()->user()
 
         return response()->json([
             'user' => $user,
