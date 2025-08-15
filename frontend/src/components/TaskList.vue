@@ -64,6 +64,7 @@
           <th>Status</th>
           <th>Prioridade</th>
           <th>Data de Vencimento</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -73,6 +74,10 @@
           <td>{{ formatStatus(task.status) }}</td>
           <td>{{ formatPriority(task.priority) }}</td>
           <td>{{ task.due_date }}</td>
+          <td>
+            <button @click="editTask(task)" class="edit-btn">Editar</button>
+            <button @click="deleteTask(task.id)" class="delete-btn">Excluir</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -99,6 +104,7 @@ export default {
         priority: 'medium',
         due_date: '',
       },
+      editTaskData: null, // Para edição
       statusOptions: [
         { value: 'pending', label: 'Pendente' },
         { value: 'in_progress', label: 'Em Andamento' },
@@ -149,9 +155,38 @@ export default {
         const response = await api.post('/tasks', this.newTask);
         this.tasks.push(response.data);
         this.error = null;
-        this.newTask = { title: '', description: '', status: 'pending', priority: 'medium', due_date: '' }; // Limpa o formulário
+        this.newTask = { title: '', description: '', status: 'pending', priority: 'medium', due_date: '' };
       } catch (error) {
         this.error = error.response?.data?.error || 'Erro ao criar tarefa';
+      }
+    },
+    editTask(task) {
+      this.editTaskData = { ...task }; // Clona a tarefa para edição
+      // Aqui você pode abrir um modal ou redefinir o formulário para edição (opcional, veja nota abaixo)
+      this.newTask = { ...task }; // Usa o formulário existente para edição
+    },
+    async updateTask() {
+      if (!this.editTaskData) return;
+      try {
+        const response = await api.put(`/tasks/${this.editTaskData.id}`, this.newTask);
+        const index = this.tasks.findIndex(t => t.id === this.editTaskData.id);
+        if (index !== -1) this.tasks[index] = response.data;
+        this.error = null;
+        this.newTask = { title: '', description: '', status: 'pending', priority: 'medium', due_date: '' };
+        this.editTaskData = null;
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Erro ao atualizar tarefa';
+      }
+    },
+    async deleteTask(id) {
+      if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+        try {
+          await api.delete(`/tasks/${id}`);
+          this.tasks = this.tasks.filter(task => task.id !== id);
+          this.error = null;
+        } catch (error) {
+          this.error = error.response?.data?.error || 'Erro ao excluir tarefa';
+        }
       }
     },
     formatStatus(status) {
@@ -173,7 +208,6 @@ export default {
   },
 };
 </script>
-
 <style scoped>
 /* Container Principal */
 .task-list-container {
@@ -314,6 +348,24 @@ button:hover {
   padding: 8px;
   background-color: #f8d7da;
   border-radius: 4px;
+}
+
+.edit-btn {
+  background-color: #28a745;
+  margin-right: 5px;
+}
+
+.edit-btn:hover {
+  background-color: #218838;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  margin-top: 5px !important;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
 }
 
 /* Responsividade */
