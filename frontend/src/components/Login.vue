@@ -1,36 +1,51 @@
 <template>
   <div class="login-container">
-    <h2>Login</h2>
-    <form @submit.prevent="login" v-if="!isAuthenticated">
+    <h2>{{ isRegistering ? 'Registrar' : 'Login' }}</h2>
+    <form @submit.prevent="handleSubmit" v-if="!isAuthenticated">
+      <div class="form-group" v-if="isRegistering">
+        <label for="name">Nome:</label>
+        <input type="text" v-model="name" id="name" v-validate="'required|min:3'" :class="{ 'error': errors.has('name') }" />
+        <span v-show="errors.has('name')" class="error">{{ errors.first('name') }}</span>
+      </div>
       <div class="form-group">
         <label for="email">Email:</label>
-        <input type="email" v-model="email" id="email" required />
+        <input type="email" v-model="email" id="email" v-validate="'required|email'" :class="{ 'error': errors.has('email') }" />
+        <span v-show="errors.has('email')" class="error">{{ errors.first('email') }}</span>
       </div>
       <div class="form-group">
         <label for="password">Senha:</label>
-        <input type="password" v-model="password" id="password" required />
+        <input type="password" v-model="password" id="password" v-validate="'required|min:6'" :class="{ 'error': errors.has('password') }" />
+        <span v-show="errors.has('password')" class="error">{{ errors.first('password') }}</span>
       </div>
-      <button type="submit">Entrar</button>
+      <button type="submit" :disabled="errors.any()">{{ isRegistering ? 'Registrar' : 'Entrar' }}</button>
       <p v-if="error" class="error">{{ error }}</p>
+      <p>
+        {{ isRegistering ? 'Já tem conta?' : 'Não tem conta?' }}
+        <a href="#" @click.prevent="toggleForm">{{ isRegistering ? 'Faça login' : 'Registre-se' }}</a>
+      </p>
     </form>
     <div v-else>
-      <p>Bem-vindo, {{ user.name }} ({{ user.company.name }})</p>
+      <p v-if="user">Bem-vindo, {{ user.name }} ({{ user.company?.name || 'Sem empresa' }})</p>
+      <p v-else>Carregando usuário...</p>
       <button @click="logout">Sair</button>
     </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
+import { login, register, logout } from '../utils/auth';
+import router from '../router'; // Importado para redirecionamento
 
 export default {
-  name: 'LoginPage', // Alterado de 'Login' para 'LoginPage'
+  name: 'LoginPage',
   data() {
     return {
+      name: '',
       email: '',
       password: '',
       error: null,
       user: null,
+      isRegistering: false,
     };
   },
   computed: {
@@ -38,26 +53,53 @@ export default {
       return !!localStorage.getItem('token');
     },
   },
+  mounted() {
+    if (this.isAuthenticated) {
+      this.loadUser();
+    }
+  },
   methods: {
-    async login() {
+    async handleSubmit() {
+      this.$validator.validateAll().then(async (result) => {
+        if (result) {
+          try {
+            if (this.isRegistering) {
+              await register(this.name, this.email, this.password);
+              this.error = null;
+              this.toggleForm();
+            } else {
+              const response = await login(this.email, this.password);
+              localStorage.setItem('token', response.token);
+              this.user = response.user;
+              this.error = null;
+              this.$router.push('/tasks');
+            }
+          } catch (error) {
+            this.error = error.response?.data?.error || 'Erro na operação';
+          }
+        }
+      });
+    },
+    toggleForm() {
+      this.isRegistering = !this.isRegistering;
+      this.error = null;
+      this.name = '';
+      this.email = '';
+      this.password = '';
+      this.$validator.reset();
+    },
+    async loadUser() {
       try {
-        const response = await axios.post('http://localhost:8000/api/login', {
-          email: this.email,
-          password: this.password,
-        });
-        localStorage.setItem('token', response.data.token);
-        this.user = response.data.user;
+        const response = await login(this.user?.email || '', this.user?.password || ''); // Placeholder, ajustar conforme API
+        this.user = response.user;
         this.error = null;
-        this.$router.push('/tasks');
       } catch (error) {
-        this.error = error.response?.data?.error || 'Erro ao fazer login';
+        this.error = error.response?.data?.error || 'Erro ao carregar usuário';
+        localStorage.removeItem('token'); // Remove token inválido
+        router.push('/login'); // Redireciona para login
       }
     },
-    logout() {
-      localStorage.removeItem('token');
-      this.user = null;
-      this.$router.push('/login');
-    },
+    logout,
   },
 };
 </script>

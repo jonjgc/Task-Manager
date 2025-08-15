@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
-import LoginPage from '../components/Login.vue'; // Ajuste o nome da importação
+import LoginPage from '../components/Login.vue'; 
 import TaskList from '../components/TaskList.vue';
 
 Vue.use(VueRouter);
@@ -8,8 +8,8 @@ Vue.use(VueRouter);
 const routes = [
   {
     path: '/login',
-    name: 'Login', // O nome da rota pode permanecer 'Login'
-    component: LoginPage, // Use o novo nome do componente
+    name: 'Login', 
+    component: LoginPage,
   },
   {
     path: '/tasks',
