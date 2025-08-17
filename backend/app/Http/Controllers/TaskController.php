@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TaskController extends Controller
 {
@@ -95,5 +96,47 @@ class TaskController extends Controller
         $task->delete();
 
         return response()->json(['message' => 'Tarefa excluída com sucesso'], 200);
+    }
+
+     public function exportCsv(Request $request)
+    {
+        $user = auth()->user();
+        $tasks = Task::where('user_id', $user->id)
+            ->orWhere('company_id', $user->company_id)
+            ->when($request->has('status'), function ($query) use ($request) {
+                return $query->where('status', $request->status);
+            })
+            ->when($request->has('priority'), function ($query) use ($request) {
+                return $query->where('priority', $request->priority);
+            })
+            ->get();
+
+        $filename = 'tasks_' . date('Ymd_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($tasks) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['ID', 'Título', 'Descrição', 'Status', 'Prioridade', 'Data de Vencimento', 'Criado em', 'Atualizado em']);
+
+            foreach ($tasks as $task) {
+                fputcsv($file, [
+                    $task->id,
+                    $task->title,
+                    $task->description,
+                    $task->status,
+                    $task->priority,
+                    $task->due_date,
+                    $task->created_at,
+                    $task->updated_at,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
     }
 }
