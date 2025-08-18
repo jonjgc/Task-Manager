@@ -8,6 +8,7 @@ Este projeto permite que o usuário:
 - Registrar um novo usuário
 - Fazer login no sistema
 - Criar tarefas
+- Enviar um email de confirmação após criar uma tarefa
 - Editar tarefas existentes
 - Deletar tarefas existentes
 - Filtrar tarefas por status e prioridade
