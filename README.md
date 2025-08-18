@@ -2,6 +2,17 @@
 
 O projeto **Task Manager** é uma aplicação web para gerenciar tarefas de forma eficiente. Este projeto é composto por um frontend desenvolvido com Vue.js 2 e um backend construído com Laravel 8, utilizando PostgreSQL como banco de dados. Este README fornece instruções detalhadas para baixar, configurar e executar o projeto localmente no Windows 11.
 
+## Funcionalidades
+
+Este projeto permite que o usuário:
+- Registrar um novo usuário
+- Fazer login no sistema
+- Criar tarefas
+- Editar tarefas existentes
+- Deletar tarefas existentes
+- Filtrar tarefas por status e prioridade
+- Exportar as tarefas em arquivo CSV
+
 ## Pré-requisitos
 
 Antes de começar, instale as seguintes ferramentas no seu sistema Windows 11:
