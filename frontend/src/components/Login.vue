@@ -1,37 +1,83 @@
 <template>
   <div class="login-wrapper">
     <div class="login-container">
-      <h2>Login</h2>
+      <h2>{{ isRegister ? 'Registrar' : 'Login' }}</h2>
       <ValidationObserver ref="observer" v-slot="{ invalid }">
-        <form @submit.prevent="handleLogin">
+        <form @submit.prevent="isRegister ? handleRegister() : handleLogin()">
+
+          <div v-if="isRegister" class="form-group">
+            <label for="name">Nome:</label>
+            <ValidationProvider name="name" :rules="{ required: true, max: 255 }" v-slot="{ errors }">
+              <input
+                type="text"
+                v-model="credentials.name"
+                id="name"
+                :class="{ 'is-invalid': errors.length > 0 }"
+              />
+              <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+            </ValidationProvider>
+          </div>
+
           <div class="form-group">
             <label for="email">E-mail:</label>
-            <ValidationProvider v-slot="{ errors }" name="email" rules="required|email">
+            <ValidationProvider name="email" :rules="{ required: true, email: true, max: 255 }" v-slot="{ errors }">
               <input
                 type="email"
                 v-model="credentials.email"
                 id="email"
                 :class="{ 'is-invalid': errors.length > 0 }"
-                required
               />
-              <span v-if="errors.length > 0" class="text-danger">{{ errors[0] }}</span>
+              <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
             </ValidationProvider>
           </div>
+
           <div class="form-group">
             <label for="password">Senha:</label>
-            <ValidationProvider v-slot="{ errors }" name="password" rules="required|min:6">
+            <ValidationProvider name="password" :rules="{ required: true, min: 6 }" v-slot="{ errors }">
               <input
                 type="password"
                 v-model="credentials.password"
                 id="password"
                 :class="{ 'is-invalid': errors.length > 0 }"
-                required
               />
-              <span v-if="errors.length > 0" class="text-danger">{{ errors[0] }}</span>
+              <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
             </ValidationProvider>
           </div>
-          <button type="submit" :disabled="invalid">Entrar</button>
+
+          <div v-if="isRegister" class="form-group">
+            <label for="company_name">Nome da Empresa:</label>
+            <ValidationProvider name="company_name" :rules="{ required: true, max: 255 }" v-slot="{ errors }">
+              <input
+                type="text"
+                v-model="credentials.company_name"
+                id="company_name"
+                :class="{ 'is-invalid': errors.length > 0 }"
+              />
+              <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+            </ValidationProvider>
+          </div>
+
+          <div v-if="isRegister" class="form-group">
+            <label for="company_identifier">Identificador da Empresa:</label>
+            <ValidationProvider name="company_identifier" :rules="{ required: true, max: 255 }" v-slot="{ errors }">
+              <input
+                type="text"
+                v-model="credentials.company_identifier"
+                id="company_identifier"
+                :class="{ 'is-invalid': errors.length > 0 }"
+              />
+              <span v-if="errors[0]" class="text-danger">{{ errors[0] }}</span>
+            </ValidationProvider>
+          </div>
+
+          <button type="submit" :disabled="invalid">{{ isRegister ? 'Registrar' : 'Entrar' }}</button>
+
           <p v-if="error" class="error">{{ error }}</p>
+
+          <p class="toggle-link">
+            {{ isRegister ? 'Já tem uma conta?' : 'Não tem uma conta?' }}
+            <a href="#" @click.prevent="toggleForm">{{ isRegister ? 'Faça Login' : 'Registre-se' }}</a>
+          </p>
         </form>
       </ValidationObserver>
     </div>
@@ -39,33 +85,98 @@
 </template>
 
 <script>
-import api from '../utils/auth';
-import router from '../router';
+import axios from "axios";
+import { ValidationObserver, ValidationProvider, extend } from "vee-validate";
+
+// Regras de validação
+extend("max", {
+  validate(value, { length }) {
+    return value.length <= length;
+  },
+  params: ["length"],
+  message: "O campo deve ter no máximo {length} caracteres.",
+});
+
+extend("required", {
+  validate(value) {
+    return !!value;
+  },
+  message: "Este campo é obrigatório.",
+});
+
+extend("email", {
+  validate(value) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(value);
+  },
+  message: "Digite um e-mail válido.",
+});
+
+extend("min", {
+  validate(value, { length }) {
+    return value.length >= length;
+  },
+  params: ["length"],
+  message: "O campo deve ter no mínimo {length} caracteres.",
+});
 
 export default {
-  name: 'LoginPage',
+  name: "LoginPage",
+  components: {
+    ValidationObserver,
+    ValidationProvider,
+  },
   data() {
     return {
       credentials: {
-        email: '',
-        password: '',
+        name: "",
+        email: "",
+        password: "",
+        company_name: "",
+        company_identifier: "",
       },
       error: null,
+      isRegister: false,
+      api: axios.create({
+        baseURL: "http://localhost:8000/api", // ajuste a URL da sua API
+      }),
     };
   },
   methods: {
+    toggleForm() {
+      this.isRegister = !this.isRegister;
+      this.credentials = { name: "", email: "", password: "", company_name: "", company_identifier: "" };
+      this.error = null;
+    },
     async handleLogin() {
       const isValid = await this.$refs.observer.validate();
       if (!isValid) return;
 
       try {
-        const response = await api.post('/login', this.credentials);
-        localStorage.setItem('token', response.data.token); // Supondo que o backend retorne um token
+        const response = await this.api.post("/login", {
+          email: this.credentials.email,
+          password: this.credentials.password,
+        });
+        localStorage.setItem("token", response.data.token);
         this.error = null;
-        router.push('/tasks'); // Redireciona para a lista de tarefas
+        this.$router.push("/tasks");
       } catch (error) {
-        this.error = error.response?.data?.error || 'Erro ao fazer login';
-        console.error('Erro ao fazer login:', error.response?.data || error);
+        this.error = error.response?.data?.error || "Erro ao fazer login";
+        console.error("Erro ao fazer login:", error.response?.data || error);
+      }
+    },
+    async handleRegister() {
+      const isValid = await this.$refs.observer.validate();
+      if (!isValid) return;
+
+      try {
+        const response = await this.api.post("/register", this.credentials);
+        localStorage.setItem("token", response.data.token);
+        this.error = null;
+        this.$router.push("/tasks");
+      } catch (error) {
+        this.error = error.response?.data?.error || "Erro ao registrar";
+        console.error("Erro ao registrar:", error.response?.data || error);
       }
     },
   },
@@ -78,14 +189,14 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh; /* Garante que ocupe toda a altura da viewport */
-  background-color: #f5f5f5; /* Fundo opcional para contraste */
+  min-height: 100vh;
+  background-color: #f5f5f5;
   padding: 20px;
 }
 
 .login-container {
   max-width: 400px;
-  width: 100%; /* Garante que ocupe a largura máxima permitida */
+  width: 100%;
   padding: 20px;
   background-color: #ffffff;
   border-radius: 8px;
@@ -143,6 +254,8 @@ button {
   font-size: 1em;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  margin: 0 auto;
+  display: block;
 }
 
 button:hover {
@@ -161,5 +274,20 @@ button:disabled {
   background-color: #f8d7da;
   border-radius: 4px;
   text-align: center;
+}
+
+.toggle-link {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.toggle-link a {
+  color: #007bff;
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+.toggle-link a:hover {
+  text-decoration: underline;
 }
 </style>
