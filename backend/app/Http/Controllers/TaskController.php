@@ -47,7 +47,7 @@ class TaskController extends Controller
         ]));
 
         // Enviar notificação por e-mail
-        Mail::to(auth()->user()->email)->send(new TaskCreatedMail($task));
+        Mail::to(auth()->user()->email)->queue(new TaskCreatedMail($task));
 
         return response()->json($task, 201);
     }
