@@ -20,7 +20,7 @@ class TaskController extends Controller
         $tasks = Task::where('user_id', $user->id)
             ->orWhere('company_id', $user->company_id)
             ->get();
-        return response()->json($tasks);
+        return response()->json($tasks, 200, ['Content-Type' => 'application/json; charset=UTF-8']);
     }
 
     /**
@@ -98,7 +98,7 @@ class TaskController extends Controller
         return response()->json(['message' => 'Tarefa excluída com sucesso'], 200);
     }
 
-     public function exportCsv(Request $request)
+    public function exportCsv(Request $request)
     {
         $user = auth()->user();
         $tasks = Task::where('user_id', $user->id)
@@ -119,6 +119,7 @@ class TaskController extends Controller
 
         $callback = function () use ($tasks) {
             $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($file, ['ID', 'Título', 'Descrição', 'Status', 'Prioridade', 'Data de Vencimento', 'Criado em', 'Atualizado em']);
 
             foreach ($tasks as $task) {
