@@ -12,7 +12,11 @@ Este projeto permite que o usuário:
 - Editar tarefas existentes
 - Deletar tarefas existentes
 - Filtrar tarefas por status e prioridade
-- Exportar as tarefas em arquivo CSV
+
+## Funcionalidades BÔNUS
+- Exportar tarefas em arquivo CSV
+- Implementação de filas para envio assíncrono de emails
+- Criação de usuário e empresa
 
 ## Pré-requisitos
 
@@ -91,6 +95,11 @@ Inicie o servidor Laravel:
 
 ```bash
 php artisan serve
+```
+abra outro prompt para executar a implementação das filas
+
+```bash
+php artisan queue:work
 ```
 
 A API estará disponível em `http://localhost:8000`.
