@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Mail\TaskCreatedMail;
+use Illuminate\Support\Facades\Mail;
 
 class TaskController extends Controller
 {
@@ -43,6 +45,9 @@ class TaskController extends Controller
             'user_id' => auth()->user()->id,
             'company_id' => auth()->user()->company_id,
         ]));
+
+        // Enviar notificação por e-mail
+        Mail::to(auth()->user()->email)->send(new TaskCreatedMail($task));
 
         return response()->json($task, 201);
     }
