@@ -157,7 +157,10 @@ export default {
           email: this.credentials.email,
           password: this.credentials.password,
         });
+        // supondo que a API retorne { token, user: { name, company_name } }
         localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
         this.error = null;
         this.$router.push("/tasks");
       } catch (error) {
@@ -171,7 +174,10 @@ export default {
 
       try {
         const response = await this.api.post("/register", this.credentials);
+        // supondo que a API retorne { token, user: { name, company_name } }
         localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
         this.error = null;
         this.$router.push("/tasks");
       } catch (error) {
@@ -181,6 +187,7 @@ export default {
     },
   },
 };
+
 </script>
 
 <style scoped>

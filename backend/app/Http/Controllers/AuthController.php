@@ -11,15 +11,8 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
-    /**
-     * Register a new user with a company.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function register(Request $request)
     {
-        // Validate the request
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -28,13 +21,13 @@ class AuthController extends Controller
             'company_identifier' => 'required|string|max:255|unique:companies,identifier',
         ]);
 
-        // Create or find the company
+        // Cria empresa
         $company = Company::create([
             'name' => $validated['company_name'],
             'identifier' => $validated['company_identifier'],
         ]);
 
-        // Create the user
+        // Cria usuário
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -42,31 +35,28 @@ class AuthController extends Controller
             'company_id' => $company->id,
         ]);
 
-        // Generate JWT token
         $token = JWTAuth::fromUser($user);
 
+        // Inclui company_name na resposta
         return response()->json([
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'company_name' => $company->name,
+            ],
             'token' => $token,
             'message' => 'User registered successfully'
         ], 201);
     }
 
-    /**
-     * Authenticate a user and return a JWT token.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function login(Request $request)
     {
-        // Validate the request
         $validated = $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
-        // Attempt to authenticate
         try {
             if (!$token = JWTAuth::attempt($validated)) {
                 return response()->json(['error' => 'Invalid credentials'], 401);
@@ -75,13 +65,34 @@ class AuthController extends Controller
             return response()->json(['error' => 'Could not create token'], 500);
         }
 
-        // Get the authenticated user using the JWT token
-        $user = JWTAuth::setToken($token)->toUser(); // Substitui auth()->user()
+        $user = JWTAuth::setToken($token)->toUser();
+        $company = $user->company; // pega a empresa
 
         return response()->json([
-            'user' => $user,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'company_name' => $company ? $company->name : null,
+            ],
             'token' => $token,
             'message' => 'Login successful'
+        ]);
+    }
+
+    /**
+     * Endpoint para pegar dados do usuário autenticado
+     */
+    public function me(Request $request)
+    {
+        $user = auth()->user();
+        $company = $user->company;
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'company_name' => $company ? $company->name : null,
         ]);
     }
 }
